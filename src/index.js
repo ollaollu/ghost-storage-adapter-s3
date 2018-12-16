@@ -2,6 +2,9 @@ import AWS from 'aws-sdk'
 import BaseStore from 'ghost-storage-base'
 import { join } from 'path'
 import { readFile } from 'fs'
+const imagemin = require('imagemin');
+const imageminJpegtran = require('imagemin-jpegtran');
+const imageminPngquant = require('imagemin-pngquant');
 
 const readFileAsync = fp => new Promise((resolve, reject) => readFile(fp, (err, data) => err ? reject(err) : resolve(data)))
 const stripLeadingSlash = s => s.indexOf('/') === 0 ? s.substring(1) : s
@@ -86,7 +89,12 @@ class Store extends BaseStore {
     return new Promise((resolve, reject) => {
       Promise.all([
         this.getUniqueFileName(image, directory),
-        readFileAsync(image.path)
+        imagemin([readFileAsync(image.path)], {
+          plugins: [
+              imageminJpegtran(),
+              imageminPngquant({speed: 3, quality: '90'})
+          ]
+        })
       ]).then(([ fileName, file ]) => {
         let config = {
           ACL: this.acl,
